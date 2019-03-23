@@ -21,9 +21,14 @@
 
        []
        [42]
-       [1 [2 [3 [4 5] 6 [7]] [8 9] [10]] 11]
+       [1 [2 [3 [4 5] 6 [7]] [8 9] [10]] 11]))
 
-       ))
+(deftest clj->jy->jy
+  (are [x] (let [jy-x (cly/clj->jy x)]
+             (= jy-x (cly/clj->jy jy-x)))
+       1 2 3
+       "foo"
+       [] {}))
 
 (deftest python-import
   (testing "Function coercion"

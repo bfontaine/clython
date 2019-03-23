@@ -43,6 +43,10 @@
   base-frame
   (PyFrame. base-code (PyDictionary.)))
 
+(defn- jy?
+  [x]
+  (instance? PyObject x))
+
 ;;
 ;; Conversions
 ;; ===========
@@ -54,19 +58,25 @@
 (def ^:private jy-false Py/False)
 (def ^:private jy-none Py/None)
 
-(defmulti clj->jy type)
+(defmulti ^:private clj->jy* type)
 
-(defmethod clj->jy nil [_] jy-none)
+(defmethod clj->jy* nil [_] jy-none)
 
-(defmethod clj->jy Boolean [x] (if x jy-true jy-false))
+(defn clj->jy
+  [x]
+  (if (jy? x)
+    x
+    (clj->jy* x)))
 
-(defmethod clj->jy String [s] (PyUnicode. ^String s))
-(defmethod clj->jy Integer [i] (PyLong. ^Long (long i)))
-(defmethod clj->jy Long [l] (PyLong. ^Long l))
-(defmethod clj->jy Float [f] (PyFloat. ^Float f))
-(defmethod clj->jy Double [d] (PyFloat. ^Double d))
-(defmethod clj->jy Character [c] (PyUnicode. (str c)))
-(defmethod clj->jy Keyword [k] (PyUnicode. (name k)))
+(defmethod clj->jy* Boolean [x] (if x jy-true jy-false))
+
+(defmethod clj->jy* String [s] (PyUnicode. ^String s))
+(defmethod clj->jy* Integer [i] (PyLong. ^Long (long i)))
+(defmethod clj->jy* Long [l] (PyLong. ^Long l))
+(defmethod clj->jy* Float [f] (PyFloat. ^Float f))
+(defmethod clj->jy* Double [d] (PyFloat. ^Double d))
+(defmethod clj->jy* Character [c] (PyUnicode. (str c)))
+(defmethod clj->jy* Keyword [k] (PyUnicode. (name k)))
 
 (defn- map->jy
   [m]
@@ -77,10 +87,10 @@
         (.put hm jy-k jy-v)))
     (PyDictionary. hm)))
 
-(defmethod clj->jy PersistentHashMap [m] (map->jy m))
-(defmethod clj->jy PersistentArrayMap [m] (map->jy m))
+(defmethod clj->jy* PersistentHashMap [m] (map->jy m))
+(defmethod clj->jy* PersistentArrayMap [m] (map->jy m))
 
-(defmethod clj->jy PersistentVector
+(defmethod clj->jy* PersistentVector
   [v]
   (PyArray. PyObject (into-array PyObject (map clj->jy v))))
 
