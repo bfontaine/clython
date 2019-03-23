@@ -2,6 +2,8 @@
 
 **Clython** is Clojure wrapper around [Jython][], aka Python on the JVM.
 
+This is very Alpha, don’t use it in production.
+
 [Jython]: https://www.jython.org/
 
 ## Usage
