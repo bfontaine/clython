@@ -11,9 +11,19 @@
        false
        nil
        "" "hey" "Ô¢¬Æ⁄Ó|·"
+       {}
        {"foo" "bar"}
+       {"hey" nil}
        {1 2, 3 4}
-       {1 2, "mixed" "types", "" false}))
+       {1 2, "mixed" "types", "" false}
+       {"a" ["b" ["c"]]}
+       {"a" [{"b" [{"c" 1, "d" 2} true] 1 nil} nil]}
+
+       []
+       [42]
+       [1 [2 [3 [4 5] 6 [7]] [8 9] [10]] 11]
+
+       ))
 
 (deftest python-import
   (testing "Function coercion"

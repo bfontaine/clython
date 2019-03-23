@@ -2,6 +2,7 @@
   (:require [clojure.string :as str])
   (:import ;[org.python.util PythonInterpreter]
            [org.python.core
+                            Py
                             PyArray
                             PyBoolean
                             PyBytecode
@@ -17,8 +18,13 @@
 
                             imp
                             ]
-           [clojure.lang Keyword PersistentArrayMap PersistentHashMap
-                         IFn]
+           [clojure.lang
+                         IFn
+                         Keyword
+                         PersistentArrayMap
+                         PersistentHashMap
+                         PersistentVector
+                         ]
            [java.util HashMap]
            ))
 
@@ -44,15 +50,15 @@
 ;; Clojure -> Jython
 ;; -----------------
 
-(def ^:private py-true (PyBoolean. true))
-(def ^:private py-false (PyBoolean. false))
-(def ^:private py-none (.get (PyDictionary.) py-true))
+(def ^:private jy-true Py/True)
+(def ^:private jy-false Py/False)
+(def ^:private jy-none Py/None)
 
 (defmulti clj->jy type)
 
-(defmethod clj->jy nil [_] py-none)
+(defmethod clj->jy nil [_] jy-none)
 
-(defmethod clj->jy Boolean [x] (if x py-true py-false))
+(defmethod clj->jy Boolean [x] (if x jy-true jy-false))
 
 (defmethod clj->jy String [s] (PyUnicode. ^String s))
 (defmethod clj->jy Integer [i] (PyLong. ^Long (long i)))
@@ -66,11 +72,17 @@
   [m]
   (let [hm (HashMap. (count m))]
     (doseq [[k v] m]
-      (.put hm (clj->jy k) (clj->jy v)))
+      (let [jy-k (clj->jy k)
+            jy-v (clj->jy v)]
+        (.put hm jy-k jy-v)))
     (PyDictionary. hm)))
 
 (defmethod clj->jy PersistentHashMap [m] (map->jy m))
 (defmethod clj->jy PersistentArrayMap [m] (map->jy m))
+
+(defmethod clj->jy PersistentVector
+  [v]
+  (PyArray. PyObject (into-array PyObject (map clj->jy v))))
 
 ;;
 ;; Jython -> Clojure
@@ -81,11 +93,12 @@
 (defmethod jy->clj PyNone [_] nil)
 (defmethod jy->clj PyUnicode [s] (.asString s))
 (defmethod jy->clj PyString [s] (.asString s))
-(defmethod jy->clj PyBoolean [b] (= py-true b))
+(defmethod jy->clj PyBoolean [b] (= jy-true b))
 (defmethod jy->clj PyLong [l] (.asLong l))
 (defmethod jy->clj PyFloat [f] (.asDouble f))
-(defmethod jy->clj PyDictionary [d] (into {} d))
-(defmethod jy->clj PyArray [a] (into [] (.asIterable a)))
+(defmethod jy->clj PyDictionary [d] (into {} (map (fn [[k v]] [(jy->clj k)
+                                                               (jy->clj v)]) d)))
+(defmethod jy->clj PyArray [a] (mapv jy->clj (.asIterable a)))
 
 (defmethod jy->clj PyFunction
   [f]
@@ -103,8 +116,16 @@
     (invoke [_ a b c d e & rest*]
       (.__call__ f (into-array PyObject (concat [a b c d e] rest*))))))
 
-; test
-(defmethod jy->clj :default [x] x)
+(def ^:private
+  pyobject-array-class
+  (Class/forName "[Lorg.python.core.PyObject;"))
+
+(defmethod jy->clj :default [x]
+  (cond
+    (instance? pyobject-array-class x)
+    (mapv jy->clj x)
+
+    :else x))
 
 ;;
 ;; Modules Import
@@ -120,15 +141,15 @@
        true (map jy->clj)
        one? first))))
 
-(defn- sym->py-name
+(defn- sym->jy-name
   [name*]
   (-> name* name (str/replace #"-" "_")))
 
 (defn- split-names-aliases
   [names]
   (if (map? names)
-    [(mapv sym->py-name (keys names)) (vec (vals names))]
-    [(mapv sym->py-name names) names]))
+    [(mapv sym->jy-name (keys names)) (vec (vals names))]
+    [(mapv sym->jy-name names) names]))
 
 (defmacro let-import
   "(let-import [pygments [highlight]
@@ -142,9 +163,9 @@
   (let [let-bindings (vec
                        (mapcat (fn [[python-module names]]
                                  (let [module-name (name python-module)
-                                       [py-names
+                                       [jy-names
                                         aliases]   (split-names-aliases names)]
-                                   `[~aliases (python-import ~module-name (into-array String ~py-names))]))
+                                   `[~aliases (python-import ~module-name (into-array String ~jy-names))]))
                                (partition 2 bindings)))]
     `(let ~let-bindings
        ~@body)))
