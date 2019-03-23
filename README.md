@@ -9,6 +9,10 @@ This is very Alpha, don’t use it in production.
 ## Usage
 
 ```clojure
+[clython "0.0.1"]
+```
+
+```clojure
 (ns my.ns
   (:require [clython.core :as cly]))
 
