@@ -1,7 +1,6 @@
 (ns clython.core
   (:require [clojure.string :as str])
-  (:import ;[org.python.util PythonInterpreter]
-           [org.python.core
+  (:import [org.python.core
                             Py
                             PyArray
                             PyBoolean
@@ -25,8 +24,7 @@
                          PersistentHashMap
                          PersistentVector
                          ]
-           [java.util HashMap]
-           ))
+           [java.util HashMap]))
 
 ;;
 ;; Internal Utilities
@@ -60,13 +58,13 @@
 
 (defmulti ^:private clj->jy* type)
 
-(defmethod clj->jy* nil [_] jy-none)
-
 (defn clj->jy
   [x]
   (if (jy? x)
     x
     (clj->jy* x)))
+
+(defmethod clj->jy* nil [_] jy-none)
 
 (defmethod clj->jy* Boolean [x] (if x jy-true jy-false))
 
