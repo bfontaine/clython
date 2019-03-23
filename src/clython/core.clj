@@ -44,17 +44,15 @@
 ;; Clojure -> Jython
 ;; -----------------
 
-(defmulti clj->jy type)
-
-;(defmethod clj->jy nil [_] py-none)
-
 (def ^:private py-true (PyBoolean. true))
 (def ^:private py-false (PyBoolean. false))
+(def ^:private py-none (.get (PyDictionary.) py-true))
 
-(defmethod clj->jy Boolean [x]
-  (if x
-    py-true
-    py-false))
+(defmulti clj->jy type)
+
+(defmethod clj->jy nil [_] py-none)
+
+(defmethod clj->jy Boolean [x] (if x py-true py-false))
 
 (defmethod clj->jy String [s] (PyUnicode. ^String s))
 (defmethod clj->jy Integer [i] (PyLong. ^Long (long i)))

@@ -1,6 +1,6 @@
 # Clython
 
-**Clython** is Clojure wrapper around [Jython][].
+**Clython** is Clojure wrapper around [Jython][], aka Python on the JVM.
 
 [Jython]: https://www.jython.org/
 
@@ -16,9 +16,12 @@
 ; => ("hello" "from" "clojure")
 
 ;; equivalent of `$ python -m SimpleHTTPServer 8000`
-(def http (cly/python-import "SimpleHTTPServer" "test"))
-(http)
+(def http-server (cly/python-import "SimpleHTTPServer" "test"))
+(http-server)
 ; => Serving HTTP on 0.0.0.0 port 8000 ...
+
+(cly/python-import "sys" "version")
+; => "2.7.1 (default:0df7adb1b397, Jun 30 2017, 19:02:43) \n[Java HotSpot(TM) 64-Bit Server VM (Oracle Corporation)]"
 ```
 
 ## License
